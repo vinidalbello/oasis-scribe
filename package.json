@@ -1,0 +1,19 @@
+{
+  "name": "oasis-scribe",
+  "version": "1.0.0",
+  "description": "AI Healthcare Scribe - Hybrid Development Setup",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "docker:start": "docker compose -f docker-compose.db.yml up -d",
+    "docker:stop": "docker compose -f docker-compose.db.yml down",
+    "docker:reset": "docker compose -f docker-compose.db.yml down -v && docker compose -f docker-compose.db.yml up -d",
+    "docker:logs": "docker compose -f docker-compose.db.yml logs -f",
+    "db:status": "docker compose -f docker-compose.db.yml ps"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+} 
