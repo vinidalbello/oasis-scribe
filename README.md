@@ -28,6 +28,27 @@ Make sure you have installed:
 - **Docker**
 - **Ollama**
 
+### Installing Ollama CLI
+
+**macOS:**
+```bash
+brew install ollama
+```
+
+**Linux:**
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+**Windows:**
+Download from [ollama.com/download](https://ollama.com/download)
+
+**Alternative (all platforms):**
+```bash
+# Using npm
+npm install -g ollama
+```
+
 ## 🛠️ Environment Setup
 
 ### 1. Setup Ollama
