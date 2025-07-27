@@ -111,12 +111,9 @@ noteRoutes.post('/', upload.single('audioFile'), async (req, res, next) => {
     let audioFilePath: string
     
     if (getS3Service().isConfigured()) {
-      console.log('📤 Uploading audio file to S3...')
       const s3Result = await getS3Service().uploadFile(req.file)
       audioFilePath = s3Result.key
-      console.log(`✅ File uploaded to S3: ${s3Result.url}`)
     } else {
-      console.log('⚠️  S3 not configured, using local storage fallback')
       const uploadDir = path.join(__dirname, '../../uploads/audio')
       const fs = require('fs')
       if (!fs.existsSync(uploadDir)) {
@@ -139,9 +136,8 @@ noteRoutes.post('/', upload.single('audioFile'), async (req, res, next) => {
         await noteProcessingService.processNote(note.id, (progress) => {
           console.log(`Note ${note.id} processing: ${progress.step} - ${progress.message} (${progress.progress}%)`)
         })
-        console.log(`✅ Note ${note.id} processed successfully`)
       } catch (error) {
-        console.error(`❌ Error processing note ${note.id}:`, error)
+        console.error(`Error processing note ${note.id}:`, error)
       }
     })
 
@@ -281,9 +277,8 @@ noteRoutes.post('/:id/reprocess', async (req, res, next) => {
         await noteProcessingService.processNote(noteId, (progress) => {
           console.log(`Note ${noteId} reprocessing: ${progress.step} - ${progress.message} (${progress.progress}%)`)
         })
-        console.log(`✅ Note ${noteId} reprocessed successfully`)
       } catch (error) {
-        console.error(`❌ Error reprocessing note ${noteId}:`, error)
+        console.error(`Error reprocessing note ${noteId}:`, error)
       }
     })
 

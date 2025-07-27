@@ -1,288 +1,224 @@
-# OASIS Scribe - Healthcare Documentation System
+# 🏥 OASIS Scribe - Medical Audio Transcription & Analysis System
 
-An AI-powered audio transcription and analysis system for OASIS Section G assessments using Node.js, React, PostgreSQL, and Ollama.
+Complete system for automatic transcription of medical audio and OASIS Section G field population using **real AI** (Whisper + Ollama).
 
-## System Requirements
+## 🎯 **Overview**
 
-- Node.js 18+ and npm
-- Docker 20.10+ (for PostgreSQL only)
-- Git
+Healthcare documentation system that automatically transcribes medical consultations and fills OASIS (Outcome and Assessment Information Set) Section G forms using real AI processing.
 
-## Architecture Overview
+**Main Flow:**
+1. **Audio Upload** (MP3, WAV, M4A)
+2. **Real Transcription** with Whisper (OpenAI)
+3. **Intelligent Analysis** with Ollama (LLaMA 3.2)
+4. **Automatic Field Population** for OASIS assessments
+5. **Visualization** of transcription and structured data
 
-- **Frontend**: React + TypeScript + Vite + TailwindCSS (runs locally)
-- **Backend**: Node.js + Express + TypeScript (runs locally)
-- **Database**: PostgreSQL (runs in Docker)
-- **AI Processing**: Ollama (local installation)
-- **File Storage**: AWS S3
+## 🚀 **Technologies Used**
 
-## Quick Setup Guide
+### **Backend**
+- **Node.js** + **TypeScript** + **Express**
+- **PostgreSQL** (database)
+- **Whisper** (real audio transcription)
+- **Ollama** (LLaMA 3.2 for analysis)
+- **FFmpeg** (automatic audio conversion)
+- **AWS S3** (audio storage)
 
-### Step 1: Clone and Install Dependencies
+### **Frontend**
+- **React** + **TypeScript** + **Vite**
+- **Tailwind CSS** (styling)
 
+### **AI/ML**
+- **whisper-node** (audio transcription)
+- **Ollama** (text analysis and data extraction)
+- **FFmpeg** (automatic format conversion)
+
+## 📋 **Prerequisites**
+
+Make sure you have installed:
+- **Node.js 18+**
+- **Docker**
+- **FFmpeg**
+- **Python 3.8+**
+- **Ollama**
+
+## 🛠️ **Quick Setup**
+
+### **1. Clone & Install**
 ```bash
-# Clone the repository
 git clone <repository-url>
-cd oasis-scribe
-
-# Install all dependencies (root, frontend, and backend)
+cd GetLimeAI
 npm run install:all
 ```
 
-### Step 2: Database Setup (Docker)
-
+### **2. Start Database**
 ```bash
-# Start PostgreSQL in Docker
 npm run docker:start
-
-# Wait a few seconds for the database to initialize, then check status
-npm run db:status
 ```
 
-### Step 3: Configure Environment Variables
+### **3. Setup AI Models**
+```bash
+# Start Ollama (keep running)
+ollama serve &
 
-**Backend Environment (.env file):**
+# Download models
+ollama pull llama3.2:1b
+cd backend && npx whisper-node download && cd ..
+```
 
-Create `backend/.env` with:
-
-```env
-# Database Configuration (local connection to Docker PostgreSQL)
+### **4. Environment Setup**
+Create `backend/.env`:
+```bash
+# Database
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=oasis_scribe
 DB_USER=postgres
 DB_PASSWORD=postgres123
 
-# Server Configuration
+# Server
 PORT=3001
 NODE_ENV=development
 
-# AWS S3 Configuration (required for audio file storage)
-AWS_ACCESS_KEY_ID=your_access_key_here
-AWS_SECRET_ACCESS_KEY=your_secret_key_here
-AWS_REGION=us-east-1
-S3_BUCKET_NAME=oasis-audio-storage (s3_name_here)
-
-# Ollama Configuration
+# AI
 OLLAMA_URL=http://localhost:11434
-OLLAMA_MODEL=llama3.2:3b
+OLLAMA_MODEL=llama3.2:1b
+WHISPER_MODEL=base.en
+
+# AWS S3 (Required)
+AWS_REGION=us-east-1
+AWS_S3_BUCKET=your-bucket-name
+AWS_ACCESS_KEY_ID=your_aws_access_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key
 ```
 
-### Step 4: Setup Ollama (AI Service)
-
-**For macOS:**
+### **5. Initialize Database**
 ```bash
-# Install via Homebrew (recommended)
-brew install ollama
+cd backend && npm run build && node dist/database/init.js && cd ..
 ```
 
-**For Linux:**
+### **6. Run Application**
 ```bash
-# Install via curl
-curl -fsSL https://ollama.ai/install.sh | sh
-```
-
-**For Windows:**
-```bash
-# Download from https://ollama.ai/download/windows
-```
-
-**Pull and verify the model:**
-```bash
-# Pull the required model
-ollama pull llama3.2
-
-# Verify Ollama is running
-curl http://localhost:11434/api/tags
-```
-
-### Step 5: Setup AWS S3
-
-1. **Create S3 Bucket:**
-   - Go to [AWS S3 Console](https://s3.console.aws.amazon.com/)
-   - Create a new bucket (e.g., `oasis-audio-storage`)
-   - Set region to `us-east-1` (or update `.env` accordingly)
-
-2. **Create IAM User:**
-   - Go to [AWS IAM Console](https://console.aws.amazon.com/iam/)
-   - Create a new user with programmatic access
-   - Attach `AmazonS3FullAccess` policy
-   - Copy the Access Key ID and Secret Access Key to your `.env` file
-
-### Step 6: Start the Application
-
-```bash
-# Start the application (all services)
 npm run dev
 ```
 
-This will start:
-- **Frontend**: http://localhost:5173
-- **Backend**: http://localhost:3001
-- **Database**: PostgreSQL in Docker (localhost:5432)
+**Access:** http://localhost:5173
 
-## Available Commands
+## 🧪 **Testing**
 
-### Application Commands
+1. Open http://localhost:5173
+2. Select a patient
+3. Upload audio file (MP3, WAV, M4A)
+4. Wait for AI processing (~1-3 minutes)
+5. View transcription + OASIS analysis
+
+## 🔧 **Available Commands**
+
 ```bash
-npm run dev          # Start frontend and backend
-npm run dev:frontend # Start only frontend
-npm run dev:backend  # Start only backend
+# Setup
+npm run install:all      # Install all dependencies
+npm run docker:start     # Start database
+npm run docker:stop      # Stop database
+npm run docker:reset     # Reset database
+
+# Development
+npm run dev             # Run full system
+npm run dev:backend     # Backend only
+npm run dev:frontend    # Frontend only
+
+# Database
+npm run db:status       # Check database
+npm run docker:logs     # View database logs
+
+# AI
+ollama serve            # Start Ollama
+ollama list             # List models
+ollama pull llama3.2:1b # Download model
 ```
 
-### Database Commands
+## 🚨 **Troubleshooting**
+
 ```bash
-npm run docker:start # Start PostgreSQL container
-npm run docker:stop  # Stop PostgreSQL container
-npm run docker:reset # Reset database (delete all data)
-npm run docker:logs  # View database logs
-npm run db:status    # Check database status
-```
+# Kill ports
+lsof -ti:3001 | xargs kill -9  # Backend
+lsof -ti:5173 | xargs kill -9  # Frontend
+lsof -ti:11434 | xargs kill -9 # Ollama
 
-## Environment Configuration
-
-### Database Connection
-The application uses PostgreSQL running in Docker. The database runs on `localhost:5432` and connects to your local backend.
-
-### AWS S3 Setup (Important!)
-Audio files are stored in AWS S3. You MUST configure your AWS credentials in `backend/.env`:
-
-1. **Access Key ID**: Your AWS programmatic access key
-2. **Secret Access Key**: Your AWS secret (shown only once when created)
-3. **Bucket Name**: The S3 bucket you created
-4. **Region**: The AWS region where your bucket is located
-
-### Ollama Configuration
-The AI service requires Ollama running locally with the `llama3.2:3b` model. The system will connect to `http://localhost:11434`.
-
-## Verification Steps
-
-1. **Check Database**: `npm run db:status`
-2. **Check Ollama**: `curl http://localhost:11434/api/tags`
-3. **Check S3**: Upload a test audio file through the web interface
-4. **Check Application**: Visit http://localhost:5173
-
-## Usage Instructions
-
-1. **Access the application** at http://localhost:5173
-2. **Select a patient** from the dropdown (patients are pre-loaded)
-3. **Upload an audio file** (MP3, WAV, M4A, etc.)
-4. **Submit for processing** - the AI will:
-   - Transcribe the audio
-   - Extract OASIS Section G assessments
-   - Generate a summary
-5. **View results** in the Patient Notes section
-6. **Click on any note** to view detailed OASIS assessments
-
-## Troubleshooting
-
-### Common Issues
-
-**"Database connection failed"**
-```bash
-# Check if PostgreSQL container is running
-npm run db:status
-
-# If not running, start it
-npm run docker:start
-```
-
-**"Ollama not responding"**
-```bash
-# Check if Ollama is running
-curl http://localhost:11434/api/tags
-
-# If not, start Ollama (it should auto-start on macOS)
-ollama serve
-```
-
-**"S3 upload failed"**
-- Verify your AWS credentials in `backend/.env`
-- Check if your S3 bucket exists and is accessible
-- Ensure your IAM user has S3 permissions
-
-**"Port already in use"**
-```bash
-# Find and kill processes using ports 3001 or 5173
-lsof -ti:3001 | xargs kill -9
-lsof -ti:5173 | xargs kill -9
-```
-
-### Reset Everything
-```bash
-# Stop all services
-npm run docker:stop
+# Check services
+curl http://localhost:3001/health    # Backend
+curl http://localhost:11434/api/tags # Ollama
+npm run db:status                    # Database
 
 # Reset database
 npm run docker:reset
 
-# Start fresh
-npm run docker:start
-npm run dev
+# Re-download Whisper
+cd backend && rm -rf node_modules/.whisper && npx whisper-node download
 ```
 
-## Project Structure
+## 📁 **Project Structure**
 
 ```
-oasis-scribe/
-├── frontend/          # React application
+GetLimeAI/
+├── package.json           # Root scripts
+├── backend/               # Node.js API
 │   ├── src/
-│   │   ├── components/    # React components
-│   │   ├── App.tsx       # Main application
-│   │   └── ...
-│   └── package.json
-├── backend/           # Node.js API
-│   ├── src/
-│   │   ├── routes/       # API routes
+│   │   ├── entities/     # Database entities
+│   │   ├── repositories/ # Data access
 │   │   ├── services/     # Business logic
-│   │   ├── entities/     # Database models
-│   │   └── ...
-│   ├── .env             # Environment variables
-│   └── package.json
-├── docker-compose.db.yml # PostgreSQL container
-├── package.json        # Root package with scripts
-└── README.md
+│   │   │   ├── WhisperTranscriptionService.ts
+│   │   │   ├── OllamaAIService.ts
+│   │   │   ├── S3Service.ts
+│   │   │   └── NoteProcessingService.ts
+│   │   ├── routes/       # API endpoints
+│   │   └── database/     # DB config
+├── frontend/             # React app
+│   └── src/
+│       ├── components/
+│       └── App.tsx
+└── docker-compose.db.yml # PostgreSQL
 ```
 
-## Development Setup
+## 🎯 **Key Features**
 
-For development, each service runs independently:
+### **✅ Real AI**
+- **Whisper**: Real speech-to-text
+- **Ollama LLaMA 3.2**: Medical text analysis
+- **FFmpeg**: Audio conversion
+- **AWS S3**: File storage
 
-1. **Database**: PostgreSQL in Docker container
-2. **Backend**: Node.js development server with hot reload
-3. **Frontend**: Vite development server with HMR
-4. **Ollama**: Local AI service
-5. **S3**: Cloud storage for audio files
+### **✅ Complete System**
+- Multiple audio formats (MP3, WAV, M4A, WEBM, OGG)
+- Asynchronous processing
+- Real-time updates
+- PostgreSQL database
+- RESTful API
 
-## Security Notes
+### **✅ Clean Architecture**
+- Repository Pattern
+- Service Layer
+- Strict TypeScript
+- Error handling
+- AWS S3 integration
 
-- Never commit `.env` files containing AWS credentials
-- Use IAM roles with minimal required permissions
-- Consider using AWS IAM roles instead of access keys in production
-- Keep your Ollama installation updated
+### **✅ Modern Stack**
+- React 18 + hooks
+- TypeScript strict mode
+- Tailwind CSS
+- Vite build
+- Docker database
 
-## Performance Considerations
+## 🎯 **Demo**
 
-- Audio files are uploaded directly to S3 (not stored locally)
-- Database connections are pooled for efficiency
-- Frontend builds are optimized for production
-- Ollama runs locally for faster AI processing
+This project demonstrates:
+1. **Real AI Integration** (Whisper + Ollama)
+2. **Full-Stack Architecture**
+3. **Clean Code** implementation
+4. **Production-Ready System**
+5. **Healthcare Application**
 
-## Support
-
-For issues:
-1. Check the troubleshooting section above
-2. Verify all services are running correctly
-3. Check the console logs for specific error messages
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+**Setup time:** ~15 minutes  
+**Demo time:** ~5 minutes
 
 ---
 
-**Important**: This system requires active internet connection for S3 uploads and periodic access to download Ollama models. 
+🚀 **Production-ready healthcare system with real AI processing!** 

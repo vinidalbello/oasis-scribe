@@ -1,11 +1,4 @@
 import axios from 'axios'
-import fs from 'fs'
-
-export interface TranscriptionResult {
-  text: string
-  duration?: number
-  language?: string
-}
 
 export interface OasisProcessingResult {
   m1800Grooming: number | null
@@ -23,69 +16,48 @@ export interface OasisProcessingResult {
 export class OllamaAIService {
   private readonly ollamaUrl: string
   private readonly model: string
+  
   constructor() {
     this.ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434'
     this.model = process.env.OLLAMA_MODEL || 'llama3.2'
     
-    console.log(`🤖 Ollama AI Service initialized with model: ${this.model}`)
+
   }
 
-  // Verificar se Ollama está disponível
   async isAvailable(): Promise<boolean> {
     try {
       const response = await axios.get(`${this.ollamaUrl}/api/tags`, { 
-        timeout: 3000 
+        timeout: 5000 
       })
-      return response.status === 200
+      
+      if (response.status === 200) {
+        const models = response.data.models || []
+        const modelExists = models.some((model: any) => 
+          model.name.includes(this.model.split(':')[0])
+        )
+        
+        if (!modelExists) {
+          console.log(`⚠️  Model ${this.model} not found. Available models:`, 
+            models.map((m: any) => m.name))
+          return false
+        }
+        
+        return true
+      }
+      
+      return false
     } catch (error) {
-      console.log('ℹ️  Ollama not available, using simulation mode')
+
       return false
     }
   }
 
-  // Transcrever áudio (simulação - Ollama não faz transcrição de áudio)
-  async transcribeAudio(audioFilePath: string): Promise<TranscriptionResult> {
-    console.log('🎤 Transcribing audio using simulation (Ollama does not support audio)')
-    
-    // Detect if file is in S3 or local storage
-    if (this.isS3Key(audioFilePath)) {
-      console.log(`📥 Audio file stored in S3: ${audioFilePath}`)
-      console.log(`🌐 S3 URL: https://oasis-audio-storage.s3.us-east-1.amazonaws.com/${audioFilePath}`)
-      // For real transcription, you would download from S3 and use Whisper/similar
-      // For now, we simulate since Ollama doesn't support audio transcription
-    } else {
-      console.log(`📁 Audio file stored locally: ${audioFilePath}`)
-      // Check if local file exists (only for local files)
-      if (fs.existsSync(audioFilePath)) {
-        console.log(`✅ Local audio file found: ${audioFilePath}`)
-      } else {
-        console.warn(`⚠️  Local audio file not found: ${audioFilePath}`)
-      }
-    }
-    
-    // For now, we simulate transcription (Ollama doesn't support audio)
-    // For real transcription, you could use:
-    // - OpenAI Whisper API
-    // - Local Whisper (whisper.cpp)
-    // - Google Speech-to-Text
-    // - AWS Transcribe
-    
-    return this.simulateTranscription()
-  }
-
-  // Helper method to detect if path is S3 key
-  private isS3Key(path: string): boolean {
-    // S3 keys don't start with / and typically contain folders like 'audio/'
-    return !path.startsWith('/') && !path.startsWith('\\') && path.includes('audio/')
-  }
-
-  // Processar transcrição para extrair dados OASIS usando Ollama
   async processOasisData(transcription: string, patientContext?: string): Promise<OasisProcessingResult> {
     const isAvailable = await this.isAvailable()
     
     if (!isAvailable) {
-      console.log('⚠️  Ollama not available, using simulation')
-      return this.simulateOasisProcessing()
+      console.log('⚠️  Ollama not available, cannot process OASIS data')
+      throw new Error('Ollama service not available. Please ensure Ollama is running and the model is installed.')
     }
 
     try {
@@ -100,22 +72,22 @@ export class OllamaAIService {
         options: {
           temperature: 0.1,
           top_p: 0.9,
-          num_predict: 500, // Limit response length for faster processing
-          num_ctx: 4096     // Context window
+          num_predict: 500,
+          num_ctx: 4096
         }
       }, {
-        timeout: 120000 // 2 minutes timeout (first run can be slow)
+        timeout: 120000
       })
 
       const result = response.data.response
       if (!result || typeof result !== 'string') {
         throw new Error('Invalid response from Ollama')
       }
+      
       return this.parseOasisResponse(result)
     } catch (error) {
-      console.error('Error processing OASIS data with Ollama:', error)
-      console.log('🔄 Falling back to simulation mode')
-      return this.simulateOasisProcessing()
+      console.error('❌ Error processing OASIS data with Ollama:', error)
+      throw new Error(`OASIS processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -199,10 +171,8 @@ Respond with ONLY this JSON format:
 
   private parseOasisResponse(response: string): OasisProcessingResult {
     try {
-      // Tentar extrair JSON válido da resposta
       let jsonText = response.trim()
       
-      // Se a resposta não começar com {, tentar encontrar JSON
       if (!jsonText.startsWith('{')) {
         const jsonMatch = jsonText.match(/\{[\s\S]*\}/)
         if (jsonMatch) {
@@ -227,9 +197,8 @@ Respond with ONLY this JSON format:
         reasoning: parsed.reasoning || 'Automated analysis performed with Ollama'
       }
     } catch (error) {
-      console.error('Error parsing Ollama response:', error)
-      console.log('🔄 Falling back to simulation')
-      return this.simulateOasisProcessing()
+      console.error('❌ Error parsing Ollama response:', error)
+      throw new Error(`Failed to parse OASIS response: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -238,85 +207,5 @@ Respond with ONLY this JSON format:
     const num = parseInt(value)
     if (isNaN(num) || num < min || num > max) return null
     return num
-  }
-
-  // Simulação para quando Ollama não está disponível
-  private simulateTranscription(): TranscriptionResult {
-    const samples = [
-      "Today I conducted a home health assessment for Mrs. Johnson. She demonstrates difficulty dressing and needs assistance putting on her shirt. She can manage personal grooming with supervision. For bathing, she requires help from another person. She walks with a cane and needs supervision for safety.",
-      "Patient is independent for personal grooming and dressing activities. She bathes independently using grab bars for support. Transfers from bed to chair without assistance. Ambulates independently throughout the home without limitations.",
-      "Patient requires total assistance for dressing and hygiene activities. Cannot bathe without complete help from caregivers. Transfers require assistance from two people for safety. Patient is bedfast and unable to ambulate.",
-      "Patient can manage personal grooming independently but needs someone to lay out her grooming supplies before she can complete the routine. She dresses upper body with some difficulty. Requires supervision during bathing for safety. Uses a walker for household mobility.",
-      "Patient is completely independent for all basic activities of daily living. Does not need help with dressing or bathing. Transfers without any assistance. Walks without limitations or assistive devices throughout the community."
-    ]
-    
-    const randomIndex = Math.floor(Math.random() * samples.length)
-    const selectedSample = samples[randomIndex] || samples[0] || "Transcrição exemplo não disponível"
-    
-    return {
-      text: selectedSample,
-      duration: Math.floor(Math.random() * 60) + 30, // 30-90 segundos
-      language: 'pt'
-    }
-  }
-
-  private simulateOasisProcessing(): OasisProcessingResult {
-    const scenarios: OasisProcessingResult[] = [
-      {
-        m1800Grooming: 1,
-        m1810DressUpper: 2,
-        m1820DressLower: 2,
-        m1830Bathing: 3,
-        m1840ToiletTransfer: 1,
-        m1845ToiletingHygiene: 1,
-        m1850Transferring: 1,
-        m1860Ambulation: 1,
-        confidence: 85,
-        reasoning: "Patient demonstrates need for moderate assistance in activities of daily living"
-      },
-      {
-        m1800Grooming: 0,
-        m1810DressUpper: 0,
-        m1820DressLower: 0,
-        m1830Bathing: 1,
-        m1840ToiletTransfer: 0,
-        m1845ToiletingHygiene: 0,
-        m1850Transferring: 0,
-        m1860Ambulation: 0,
-        confidence: 92,
-        reasoning: "Patient independent in most functional activities"
-      },
-      {
-        m1800Grooming: 3,
-        m1810DressUpper: 3,
-        m1820DressLower: 3,
-        m1830Bathing: 4,
-        m1840ToiletTransfer: 3,
-        m1845ToiletingHygiene: 3,
-        m1850Transferring: 4,
-        m1860Ambulation: 6,
-        confidence: 78,
-        reasoning: "Patient requires extensive assistance for most activities"
-      }
-    ]
-    
-    const selectedScenario = scenarios[Math.floor(Math.random() * scenarios.length)]
-    
-    if (!selectedScenario) {
-      return {
-        m1800Grooming: null,
-        m1810DressUpper: null,
-        m1820DressLower: null,
-        m1830Bathing: null,
-        m1840ToiletTransfer: null,
-        m1845ToiletingHygiene: null,
-        m1850Transferring: null,
-        m1860Ambulation: null,
-        confidence: 50,
-        reasoning: "Unable to assess - insufficient information"
-      }
-    }
-    
-    return selectedScenario
   }
 } 

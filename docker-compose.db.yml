@@ -1,5 +1,4 @@
 services:
-  # Database only
   postgres:
     image: postgres:15-alpine
     container_name: oasis-scribe-postgres-dev

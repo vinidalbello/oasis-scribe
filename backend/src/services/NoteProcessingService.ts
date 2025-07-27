@@ -1,4 +1,6 @@
-import { OllamaAIService, TranscriptionResult, OasisProcessingResult } from './OllamaAIService'
+import { OllamaAIService, OasisProcessingResult } from './OllamaAIService'
+import { WhisperTranscriptionService, TranscriptionResult } from './WhisperTranscriptionService'
+import { S3Service } from './S3Service'
 import { NoteRepository } from '../repositories/NoteRepository'
 import { OasisRepository } from '../repositories/OasisRepository'
 import { PatientRepository } from '../repositories/PatientRepository'
@@ -16,27 +18,32 @@ import {
 } from '../types/oasisEnums'
 import { Pool } from 'pg'
 import path from 'path'
+import fs from 'fs'
+import os from 'os'
 
 export interface ProcessingProgress {
   step: 'transcription' | 'oasis_analysis' | 'saving' | 'completed' | 'error'
   message: string
-  progress: number // 0-100
+  progress: number
 }
 
 export class NoteProcessingService {
   private readonly aiService: OllamaAIService
+  private readonly transcriptionService: WhisperTranscriptionService
   private readonly noteRepository: NoteRepository
   private readonly oasisRepository: OasisRepository
   private readonly patientRepository: PatientRepository
+  private readonly s3Service: S3Service
 
   constructor(pool: Pool) {
     this.aiService = new OllamaAIService()
+    this.transcriptionService = new WhisperTranscriptionService()
     this.noteRepository = new NoteRepository(pool)
     this.oasisRepository = new OasisRepository(pool)
     this.patientRepository = new PatientRepository(pool)
+    this.s3Service = new S3Service()
   }
 
-  // Helper functions to convert number|null to enum types for createNew (undefined)
   private convertToM1800ForCreate(value: number | null): M1800Grooming | undefined {
     return value !== null ? (value as M1800Grooming) : undefined
   }
@@ -69,7 +76,6 @@ export class NoteProcessingService {
     return value !== null ? (value as M1860Ambulation) : undefined
   }
 
-  // Helper functions to convert number|null to enum types for update (null)
   private convertToM1800ForUpdate(value: number | null): M1800Grooming | null {
     return value !== null ? (value as M1800Grooming) : value
   }
@@ -102,7 +108,6 @@ export class NoteProcessingService {
     return value !== null ? (value as M1860Ambulation) : value
   }
 
-  // Processar nota completa: transcrição + análise OASIS
   async processNote(noteId: number, progressCallback?: (progress: ProcessingProgress) => void): Promise<void> {
     try {
       progressCallback?.({
@@ -111,7 +116,6 @@ export class NoteProcessingService {
         progress: 10
       })
 
-      // 1. Buscar a nota
       const note = await this.noteRepository.findById(noteId)
       if (!note) {
         throw new Error('Note not found')
@@ -121,7 +125,6 @@ export class NoteProcessingService {
         throw new Error('No audio file available for processing')
       }
 
-      // 2. Buscar informações do paciente para contexto
       const patient = await this.patientRepository.findById(note.patientId)
       const patientContext = patient ? 
         `Patient: ${patient.name}, Age: ${patient.getAge()}, Diagnosis: ${patient.diagnosis}` : 
@@ -133,66 +136,81 @@ export class NoteProcessingService {
         progress: 30
       })
 
-      // 3. Transcrever áudio
-      const audioFilePath = path.join(__dirname, '../../', note.audioFilePath)
-      const transcriptionResult = await this.aiService.transcribeAudio(audioFilePath)
+      let audioFilePath: string
+      let tempFilePath: string | null = null
 
-      progressCallback?.({
-        step: 'oasis_analysis',
-        message: 'Analyzing transcription for OASIS data extraction...',
-        progress: 60
-      })
+      if (note.audioFilePath.startsWith('/uploads/')) {
+        audioFilePath = path.join(__dirname, '../../', note.audioFilePath)
+      } else {
+        const audioBuffer = await this.s3Service.downloadFile(note.audioFilePath)
+        
+        const fileExtension = path.extname(note.audioFilePath) || '.mp3'
+        tempFilePath = path.join(os.tmpdir(), `temp_audio_${Date.now()}${fileExtension}`)
+        
+        fs.writeFileSync(tempFilePath, audioBuffer)
+        audioFilePath = tempFilePath
+      }
 
-      // 4. Processar dados OASIS
-      const oasisResult = await this.aiService.processOasisData(
-        transcriptionResult.text, 
-        patientContext
-      )
+      try {
+        const transcriptionResult = await this.transcriptionService.transcribeAudio(audioFilePath)
 
-      progressCallback?.({
-        step: 'saving',
-        message: 'Saving results...',
-        progress: 80
-      })
-
-      // 5. Atualizar nota com transcrição
-      await this.noteRepository.update(noteId, {
-        transcription: transcriptionResult.text,
-        summary: this.generateSummary(oasisResult),
-        status: 'completed'
-      })
-
-      // 6. Salvar dados OASIS
-      await this.oasisRepository.create(
-        OasisSectionG.createNew(noteId, {
-          m1800Grooming: this.convertToM1800ForCreate(oasisResult.m1800Grooming),
-          m1810DressUpper: this.convertToM1810ForCreate(oasisResult.m1810DressUpper),
-          m1820DressLower: this.convertToM1820ForCreate(oasisResult.m1820DressLower),
-          m1830Bathing: this.convertToM1830ForCreate(oasisResult.m1830Bathing),
-          m1840ToiletTransfer: this.convertToM1840ForCreate(oasisResult.m1840ToiletTransfer),
-          m1845ToiletingHygiene: this.convertToM1845ForCreate(oasisResult.m1845ToiletingHygiene),
-          m1850Transferring: this.convertToM1850ForCreate(oasisResult.m1850Transferring),
-          m1860Ambulation: this.convertToM1860ForCreate(oasisResult.m1860Ambulation)
+        progressCallback?.({
+          step: 'oasis_analysis',
+          message: 'Analyzing transcription for OASIS data extraction...',
+          progress: 60
         })
-      )
 
-      progressCallback?.({
-        step: 'completed',
-        message: 'Processamento concluído com sucesso!',
-        progress: 100
-      })
+        const oasisResult = await this.aiService.processOasisData(
+          transcriptionResult.text, 
+          patientContext
+        )
 
+        progressCallback?.({
+          step: 'saving',
+          message: 'Saving results...',
+          progress: 80
+        })
+
+        await this.noteRepository.update(noteId, {
+          transcription: transcriptionResult.text,
+          summary: this.generateSummary(oasisResult),
+          status: 'completed'
+        })
+
+        await this.oasisRepository.create(
+          OasisSectionG.createNew(noteId, {
+            m1800Grooming: this.convertToM1800ForCreate(oasisResult.m1800Grooming),
+            m1810DressUpper: this.convertToM1810ForCreate(oasisResult.m1810DressUpper),
+            m1820DressLower: this.convertToM1820ForCreate(oasisResult.m1820DressLower),
+            m1830Bathing: this.convertToM1830ForCreate(oasisResult.m1830Bathing),
+            m1840ToiletTransfer: this.convertToM1840ForCreate(oasisResult.m1840ToiletTransfer),
+            m1845ToiletingHygiene: this.convertToM1845ForCreate(oasisResult.m1845ToiletingHygiene),
+            m1850Transferring: this.convertToM1850ForCreate(oasisResult.m1850Transferring),
+            m1860Ambulation: this.convertToM1860ForCreate(oasisResult.m1860Ambulation)
+          })
+        )
+
+        progressCallback?.({
+          step: 'completed',
+          message: 'Processing completed successfully!',
+          progress: 100
+        })
+
+      } finally {
+        if (tempFilePath && fs.existsSync(tempFilePath)) {
+          fs.unlinkSync(tempFilePath)
+        }
+      }
     } catch (error) {
-      console.error('Error processing note:', error)
+      console.error('❌ Error processing note:', error)
       
-      // Marcar nota como erro
       await this.noteRepository.update(noteId, {
         status: 'error'
       })
 
       progressCallback?.({
         step: 'error',
-        message: `Erro no processamento: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
+        message: `Processing error: ${error instanceof Error ? error.message : 'Unknown error'}`,
         progress: 0
       })
 
@@ -200,7 +218,6 @@ export class NoteProcessingService {
     }
   }
 
-  // Processar apenas transcrição (para casos onde já existe)
   async transcribeOnly(noteId: number): Promise<TranscriptionResult> {
     const note = await this.noteRepository.findById(noteId)
     if (!note) {
@@ -211,18 +228,36 @@ export class NoteProcessingService {
       throw new Error('No audio file available for transcription')
     }
 
-    const audioFilePath = path.join(__dirname, '../../', note.audioFilePath)
-    const result = await this.aiService.transcribeAudio(audioFilePath)
+    let audioFilePath: string
+    let tempFilePath: string | null = null
 
-    // Atualizar apenas a transcrição
-    await this.noteRepository.update(noteId, {
-      transcription: result.text
-    })
+    if (note.audioFilePath.startsWith('/uploads/')) {
+      audioFilePath = path.join(__dirname, '../../', note.audioFilePath)
+    } else {
+      const audioBuffer = await this.s3Service.downloadFile(note.audioFilePath)
+      
+      const fileExtension = path.extname(note.audioFilePath) || '.mp3'
+      tempFilePath = path.join(os.tmpdir(), `temp_audio_${Date.now()}${fileExtension}`)
+      
+      fs.writeFileSync(tempFilePath, audioBuffer)
+      audioFilePath = tempFilePath
+    }
 
-    return result
+    try {
+      const result = await this.transcriptionService.transcribeAudio(audioFilePath)
+
+      await this.noteRepository.update(noteId, {
+        transcription: result.text
+      })
+
+      return result
+    } finally {
+      if (tempFilePath && fs.existsSync(tempFilePath)) {
+        fs.unlinkSync(tempFilePath)
+      }
+    }
   }
 
-  // Processar apenas dados OASIS (quando já existe transcrição)
   async processOasisOnly(noteId: number): Promise<OasisProcessingResult> {
     const note = await this.noteRepository.findById(noteId)
     if (!note) {
@@ -233,7 +268,6 @@ export class NoteProcessingService {
       throw new Error('No transcription available for OASIS processing')
     }
 
-    // Buscar contexto do paciente
     const patient = await this.patientRepository.findById(note.patientId)
     const patientContext = patient ? 
       `Patient: ${patient.name}, Age: ${patient.getAge()}, Diagnosis: ${patient.diagnosis}` : 
@@ -241,12 +275,10 @@ export class NoteProcessingService {
 
     const result = await this.aiService.processOasisData(note.transcription, patientContext)
 
-    // Atualizar summary da nota
     await this.noteRepository.update(noteId, {
       summary: this.generateSummary(result)
     })
 
-    // Salvar ou atualizar dados OASIS
     const existingOasis = await this.oasisRepository.findByNoteId(noteId)
     if (existingOasis) {
       await this.oasisRepository.update(existingOasis.id, {
@@ -266,10 +298,10 @@ export class NoteProcessingService {
           m1810DressUpper: this.convertToM1810ForCreate(result.m1810DressUpper),
           m1820DressLower: this.convertToM1820ForCreate(result.m1820DressLower),
           m1830Bathing: this.convertToM1830ForCreate(result.m1830Bathing),
-                  m1840ToiletTransfer: this.convertToM1840ForCreate(result.m1840ToiletTransfer),
-        m1845ToiletingHygiene: this.convertToM1845ForCreate(result.m1845ToiletingHygiene),
-        m1850Transferring: this.convertToM1850ForCreate(result.m1850Transferring),
-        m1860Ambulation: this.convertToM1860ForCreate(result.m1860Ambulation)
+          m1840ToiletTransfer: this.convertToM1840ForCreate(result.m1840ToiletTransfer),
+          m1845ToiletingHygiene: this.convertToM1845ForCreate(result.m1845ToiletingHygiene),
+          m1850Transferring: this.convertToM1850ForCreate(result.m1850Transferring),
+          m1860Ambulation: this.convertToM1860ForCreate(result.m1860Ambulation)
         })
       )
     }
@@ -277,7 +309,6 @@ export class NoteProcessingService {
     return result
   }
 
-  // Buscar nota com dados OASIS
   async getNoteWithOasis(noteId: number): Promise<{
     note: Note;
     patientName: string;
@@ -312,6 +343,6 @@ export class NoteProcessingService {
     const totalFields = 8
     const completionRate = Math.round((filledFields / totalFields) * 100)
 
-    return `OASIS Section G processed automatically. ${filledFields}/${totalFields} fields completed (${completionRate}%). Confidence: ${oasisResult.confidence}%. ${oasisResult.reasoning}`
+    return `OASIS Section G processed with real AI. ${filledFields}/${totalFields} fields completed (${completionRate}%). Confidence: ${oasisResult.confidence}%. ${oasisResult.reasoning}`
   }
 } 

@@ -3,7 +3,7 @@ export class Patient {
     public readonly id: number,
     public readonly name: string,
     public readonly dateOfBirth: Date,
-    public readonly patientId: string, // External identifier (PAT001, PAT002, etc.)
+    public readonly patientId: string,
     public readonly address: string,
     public readonly phone: string,
     public readonly emergencyContact: string,
@@ -12,7 +12,6 @@ export class Patient {
     public readonly updatedAt: Date
   ) {}
 
-  // Factory method to create Patient from database row
   static fromDatabase(row: any): Patient {
     return new Patient(
       row.id,
@@ -28,7 +27,6 @@ export class Patient {
     )
   }
 
-  // Get age based on date of birth
   getAge(): number {
     const today = new Date()
     const birthDate = new Date(this.dateOfBirth)
@@ -42,13 +40,11 @@ export class Patient {
     return age
   }
 
-  // Format display name for UI
   getDisplayName(): string {
     return `${this.name} (${this.patientId})`
   }
 
-  // Get formatted date of birth for display
   getFormattedDateOfBirth(): string {
-    return this.dateOfBirth.toLocaleDateString('pt-BR')
+    return this.dateOfBirth.toLocaleDateString('en-US')
   }
 } 

@@ -12,7 +12,6 @@ export class Note {
     public readonly updatedAt: Date
   ) {}
 
-  // Factory method to create Note from database row
   static fromDatabase(row: any): Note {
     return new Note(
       row.id,
@@ -26,7 +25,6 @@ export class Note {
     )
   }
 
-  // Factory method to create a new Note for creation (returns data for insertion)
   static createNew(
     patientId: number,
     audioFilePath: string | null,
@@ -49,24 +47,20 @@ export class Note {
     }
   }
 
-  // Check if note is ready for display
   isCompleted(): boolean {
     return this.status === 'completed'
   }
 
-  // Check if note processing failed
   hasError(): boolean {
     return this.status === 'error'
   }
 
-  // Check if note is still being processed
   isProcessing(): boolean {
     return this.status === 'processing'
   }
 
-  // Get formatted created date for display
   getFormattedCreatedAt(): string {
-    return this.createdAt.toLocaleDateString('pt-BR', {
+    return this.createdAt.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -75,13 +69,11 @@ export class Note {
     })
   }
 
-  // Get audio file name from path
   getAudioFileName(): string | null {
     if (!this.audioFilePath) return null
     return this.audioFilePath.split('/').pop() || null
   }
 
-  // Get transcription preview (first 100 characters)
   getTranscriptionPreview(): string | null {
     if (!this.transcription) return null
     return this.transcription.length > 100 

@@ -14,7 +14,6 @@ import {
 export class OasisRepository {
   constructor(private readonly pool: Pool) {}
 
-  // Get OASIS Section G by note ID
   async findByNoteId(noteId: number): Promise<OasisSectionG | null> {
     const query = `
       SELECT id, note_id, m1800_grooming, m1810_dress_upper, m1820_dress_lower,
@@ -33,7 +32,6 @@ export class OasisRepository {
     return OasisSectionG.fromDatabase(result.rows[0])
   }
 
-  // Get OASIS Section G by ID
   async findById(id: number): Promise<OasisSectionG | null> {
     const query = `
       SELECT id, note_id, m1800_grooming, m1810_dress_upper, m1820_dress_lower,
@@ -52,7 +50,6 @@ export class OasisRepository {
     return OasisSectionG.fromDatabase(result.rows[0])
   }
 
-  // Create new OASIS Section G
   async create(oasisData: {
     noteId: number;
     m1800Grooming?: M1800Grooming | null;
@@ -91,7 +88,6 @@ export class OasisRepository {
     return OasisSectionG.fromDatabase(result.rows[0])
   }
 
-  // Update OASIS Section G
   async update(id: number, oasisData: Partial<{
     m1800Grooming: M1800Grooming | null;
     m1810DressUpper: M1810DressUpper | null;
@@ -171,7 +167,6 @@ export class OasisRepository {
     return OasisSectionG.fromDatabase(result.rows[0])
   }
 
-  // Update or create OASIS Section G for a note
   async upsertByNoteId(noteId: number, oasisData: {
     m1800Grooming?: M1800Grooming | null;
     m1810DressUpper?: M1810DressUpper | null;
@@ -194,14 +189,12 @@ export class OasisRepository {
     }
   }
 
-  // Delete OASIS Section G
   async delete(id: number): Promise<boolean> {
     const query = 'DELETE FROM oasis_section_g WHERE id = $1'
     const result = await this.pool.query(query, [id])
     return result.rowCount !== null && result.rowCount > 0
   }
 
-  // Delete OASIS Section G by note ID
   async deleteByNoteId(noteId: number): Promise<boolean> {
     const query = 'DELETE FROM oasis_section_g WHERE note_id = $1'
     const result = await this.pool.query(query, [noteId])

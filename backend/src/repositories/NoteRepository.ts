@@ -9,7 +9,6 @@ export interface NoteWithPatient {
 export class NoteRepository {
   constructor(private readonly pool: Pool) {}
 
-  // Get all notes with patient information
   async findAll(): Promise<NoteWithPatient[]> {
     const query = `
       SELECT n.id, n.patient_id, n.audio_file_path, n.transcription, n.summary, 
@@ -26,7 +25,6 @@ export class NoteRepository {
     }))
   }
 
-  // Get notes by patient ID
   async findByPatientId(patientId: number): Promise<Note[]> {
     const query = `
       SELECT id, patient_id, audio_file_path, transcription, summary, 
@@ -40,7 +38,6 @@ export class NoteRepository {
     return result.rows.map(row => Note.fromDatabase(row))
   }
 
-  // Get note by ID
   async findById(id: number): Promise<Note | null> {
     const query = `
       SELECT id, patient_id, audio_file_path, transcription, summary,
@@ -58,7 +55,6 @@ export class NoteRepository {
     return Note.fromDatabase(result.rows[0])
   }
 
-  // Get note with patient information by ID
   async findByIdWithPatient(id: number): Promise<NoteWithPatient | null> {
     const query = `
       SELECT n.id, n.patient_id, n.audio_file_path, n.transcription, n.summary,
@@ -81,7 +77,6 @@ export class NoteRepository {
     }
   }
 
-  // Create new note
   async create(noteData: {
     patientId: number;
     audioFilePath: string | null;
@@ -107,7 +102,6 @@ export class NoteRepository {
     return Note.fromDatabase(result.rows[0])
   }
 
-  // Update note
   async update(id: number, noteData: Partial<{
     audioFilePath: string | null;
     transcription: string | null;
@@ -161,14 +155,12 @@ export class NoteRepository {
     return Note.fromDatabase(result.rows[0])
   }
 
-  // Delete note
   async delete(id: number): Promise<boolean> {
     const query = 'DELETE FROM notes WHERE id = $1'
     const result = await this.pool.query(query, [id])
     return result.rowCount !== null && result.rowCount > 0
   }
 
-  // Get recent notes (for dashboard/preview)
   async findRecent(limit: number = 10): Promise<NoteWithPatient[]> {
     const query = `
       SELECT n.id, n.patient_id, n.audio_file_path, n.transcription, n.summary,

@@ -4,7 +4,6 @@ import { Patient } from '../entities/Patient'
 export class PatientRepository {
   constructor(private readonly pool: Pool) {}
 
-  // Get all patients
   async findAll(): Promise<Patient[]> {
     const query = `
       SELECT id, name, date_of_birth, patient_id, address, phone, 
@@ -17,7 +16,6 @@ export class PatientRepository {
     return result.rows.map(row => Patient.fromDatabase(row))
   }
 
-  // Get patient by ID
   async findById(id: number): Promise<Patient | null> {
     const query = `
       SELECT id, name, date_of_birth, patient_id, address, phone,
@@ -35,7 +33,6 @@ export class PatientRepository {
     return Patient.fromDatabase(result.rows[0])
   }
 
-  // Get patient by external patient ID
   async findByPatientId(patientId: string): Promise<Patient | null> {
     const query = `
       SELECT id, name, date_of_birth, patient_id, address, phone,
@@ -53,7 +50,6 @@ export class PatientRepository {
     return Patient.fromDatabase(result.rows[0])
   }
 
-  // Create new patient
   async create(patientData: {
     name: string;
     dateOfBirth: Date;
@@ -83,7 +79,6 @@ export class PatientRepository {
     return Patient.fromDatabase(result.rows[0])
   }
 
-  // Update patient
   async update(id: number, patientData: Partial<{
     name: string;
     dateOfBirth: Date;
@@ -149,7 +144,6 @@ export class PatientRepository {
     return Patient.fromDatabase(result.rows[0])
   }
 
-  // Delete patient
   async delete(id: number): Promise<boolean> {
     const query = 'DELETE FROM patients WHERE id = $1'
     const result = await this.pool.query(query, [id])

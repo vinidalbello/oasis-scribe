@@ -452,10 +452,10 @@ function App() {
               </div>
             </div>
             <div className="flex items-center p-4 bg-gray-50 border border-gray-200 rounded">
-              <span className="w-4 h-4 bg-gray-500 mr-3 rounded-full"></span>
+              <span className="w-4 h-4 bg-green-500 mr-3 rounded-full"></span>
               <div>
                 <div className="font-semibold text-black">AI Processing</div>
-                <div className="text-sm text-gray-600">Simulation Mode</div>
+                <div className="text-sm text-gray-600">Whisper + Ollama (Real AI)</div>
               </div>
             </div>
             <div className="flex items-center p-4 bg-gray-50 border border-gray-200 rounded">

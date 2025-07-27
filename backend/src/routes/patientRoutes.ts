@@ -4,10 +4,8 @@ import { PatientRepository } from '../repositories/PatientRepository'
 
 export const patientRoutes = Router()
 
-// Initialize repository
 const patientRepository = new PatientRepository(pool)
 
-// GET /api/patients - Get all patients for the dropdown
 patientRoutes.get('/', async (req, res, next) => {
   try {
     const patients = await patientRepository.findAll()
@@ -29,7 +27,6 @@ patientRoutes.get('/', async (req, res, next) => {
   }
 })
 
-// GET /api/patients/:id - Get specific patient details
 patientRoutes.get('/:id', async (req, res, next) => {
   try {
     const patientId = parseInt(req.params.id)

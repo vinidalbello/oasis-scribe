@@ -26,7 +26,6 @@ export class OasisSectionG {
     public readonly updatedAt: Date
   ) {}
 
-  // Factory method to create OasisSectionG from database row
   static fromDatabase(row: any): OasisSectionG {
     return new OasisSectionG(
       row.id,
@@ -44,7 +43,6 @@ export class OasisSectionG {
     )
   }
 
-  // Factory method for creating new OASIS Section G (for insertion)
   static createNew(
     noteId: number,
     data: {
@@ -81,7 +79,6 @@ export class OasisSectionG {
     }
   }
 
-  // Get all OASIS fields as an object with descriptions
   getAllFieldsWithDescriptions(): Record<string, { value: number | null; description: string | null }> {
     return {
       M1800: {
@@ -119,7 +116,6 @@ export class OasisSectionG {
     }
   }
 
-  // Check if OASIS form is complete (all fields filled)
   isComplete(): boolean {
     return this.m1800Grooming !== null &&
            this.m1810DressUpper !== null &&
@@ -131,7 +127,6 @@ export class OasisSectionG {
            this.m1860Ambulation !== null
   }
 
-  // Get completion percentage
   getCompletionPercentage(): number {
     const fields = [
       this.m1800Grooming,
