@@ -56,7 +56,7 @@ npm install -g ollama
 # Start Ollama (keep running)
 ollama serve
 
-# Download model
+# Download model (another terminal tab)
 ollama pull llama3.2:1b
 ```
 
