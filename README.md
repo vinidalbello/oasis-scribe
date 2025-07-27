@@ -1,71 +1,45 @@
-# 🏥 OASIS Scribe - Medical Audio Transcription & Analysis System
+# 🏥 OASIS Scribe - AI Healthcare Documentation System
 
 Complete system for automatic transcription of medical audio and OASIS Section G field population using **real AI** (Whisper + Ollama).
 
-## 🎯 **Overview**
+## 🚀 Quick Start
 
-Healthcare documentation system that automatically transcribes medical consultations and fills OASIS (Outcome and Assessment Information Set) Section G forms using real AI processing.
+### First Time Setup (Only Once)
+```bash
+npm run setup
+```
+This will:
+- Install all dependencies (root, frontend, backend)
+- Download Whisper AI models
+- Start the database
 
-**Main Flow:**
-1. **Audio Upload** (MP3, WAV, M4A)
-2. **Real Transcription** with Whisper (OpenAI)
-3. **Intelligent Analysis** with Ollama (LLaMA 3.2)
-4. **Automatic Field Population** for OASIS assessments
-5. **Visualization** of transcription and structured data
+### Daily Development
+```bash
+npm start
+```
+This starts both the database and development servers.
 
-## 🚀 **Technologies Used**
+**Access:** http://localhost:5173
 
-### **Backend**
-- **Node.js** + **TypeScript** + **Express**
-- **PostgreSQL** (database)
-- **Whisper** (real audio transcription)
-- **Ollama** (LLaMA 3.2 for analysis)
-- **FFmpeg** (automatic audio conversion)
-- **AWS S3** (audio storage)
-
-### **Frontend**
-- **React** + **TypeScript** + **Vite**
-- **Tailwind CSS** (styling)
-
-### **AI/ML**
-- **whisper-node** (audio transcription)
-- **Ollama** (text analysis and data extraction)
-- **FFmpeg** (automatic format conversion)
-
-## 📋 **Prerequisites**
+## 📋 Prerequisites
 
 Make sure you have installed:
 - **Node.js 18+**
 - **Docker**
-- **FFmpeg**
-- **Python 3.8+**
 - **Ollama**
 
-## 🛠️ **Quick Setup**
+## 🛠️ Environment Setup
 
-### **1. Clone & Install**
-```bash
-git clone <repository-url>
-cd oasis-scribe
-npm run install:all
-```
-
-### **2. Start Database**
-```bash
-npm run docker:start
-```
-
-### **3. Setup AI Models**
+### 1. Setup Ollama
 ```bash
 # Start Ollama (keep running)
-ollama serve &
+ollama serve
 
-# Download models
+# Download model
 ollama pull llama3.2:1b
-cd backend && npx whisper-node download && cd ..
 ```
 
-### **4. Environment Setup**
+### 2. Create Environment File
 Create `backend/.env`:
 ```bash
 # Database
@@ -91,74 +65,65 @@ AWS_ACCESS_KEY_ID=your_aws_access_key
 AWS_SECRET_ACCESS_KEY=your_aws_secret_key
 ```
 
-### **5. Initialize Database**
+## 🔧 Available Commands
+
 ```bash
-cd backend && npm run build && node dist/database/init.js && cd ..
+# Setup & Development
+npm run setup           # First-time setup (install + models + database)
+npm start              # Start database + development servers
+npm run dev            # Start development servers only
+
+# Database Management
+npm run docker:start   # Start database
+npm run docker:stop    # Stop database
+npm run docker:reset   # Reset database (clears data)
+npm run db:status      # Check database status
 ```
 
-### **6. Run Application**
-```bash
-npm run dev
-```
+## 🧪 Testing
 
-**Access:** http://localhost:5173
+1. Run `npm start`
+2. Open http://localhost:5173
+3. Select a patient
+4. Upload audio file (MP3, WAV, M4A)
+5. Wait for AI processing (~1-3 minutes)
+6. View transcription + OASIS analysis
 
-## 🧪 **Testing**
-
-1. Open http://localhost:5173
-2. Select a patient
-3. Upload audio file (MP3, WAV, M4A)
-4. Wait for AI processing (~1-3 minutes)
-5. View transcription + OASIS analysis
-
-## 🔧 **Available Commands**
+## 🚨 Troubleshooting
 
 ```bash
-# Setup
-npm run install:all      # Install all dependencies
-npm run docker:start     # Start database
-npm run docker:stop      # Stop database
-npm run docker:reset     # Reset database
-
-# Development
-npm run dev             # Run full system
-npm run dev:backend     # Backend only
-npm run dev:frontend    # Frontend only
-
-# Database
-npm run db:status       # Check database
-npm run docker:logs     # View database logs
-
-# AI
-ollama serve            # Start Ollama
-ollama list             # List models
-ollama pull llama3.2:1b # Download model
-```
-
-## 🚨 **Troubleshooting**
-
-```bash
-# Kill ports
-lsof -ti:3001 | xargs kill -9  # Backend
-lsof -ti:5173 | xargs kill -9  # Frontend
-lsof -ti:11434 | xargs kill -9 # Ollama
-
 # Check services
 curl http://localhost:3001/health    # Backend
 curl http://localhost:11434/api/tags # Ollama
 npm run db:status                    # Database
 
-# Reset database
-npm run docker:reset
-
-# Re-download Whisper
-cd backend && rm -rf node_modules/.whisper && npx whisper-node download
+# Reset if needed
+npm run docker:reset                 # Reset database
 ```
 
-## 📁 **Project Structure**
+## 🎯 Key Features
+
+### ✅ Real AI Processing
+- **Whisper**: Speech-to-text transcription
+- **Ollama LLaMA 3.2**: Medical text analysis
+- **FFmpeg**: Automatic audio conversion
+- **AWS S3**: File storage
+
+### ✅ Modern Stack
+- **Backend**: Node.js + TypeScript + Express + PostgreSQL
+- **Frontend**: React + TypeScript + Vite + Tailwind CSS
+- **AI/ML**: Whisper + Ollama + FFmpeg
+
+### ✅ Complete System
+- Multiple audio formats (MP3, WAV, M4A, WEBM, OGG)
+- Asynchronous processing with real-time updates
+- Clean architecture with repository pattern
+- Production-ready error handling
+
+## 📁 Project Structure
 
 ```
-GetLimeAI/
+oasis-scribe/
 ├── package.json           # Root scripts
 ├── backend/               # Node.js API
 │   ├── src/
@@ -178,47 +143,6 @@ GetLimeAI/
 └── docker-compose.db.yml # PostgreSQL
 ```
 
-## 🎯 **Key Features**
-
-### **✅ Real AI**
-- **Whisper**: Real speech-to-text
-- **Ollama LLaMA 3.2**: Medical text analysis
-- **FFmpeg**: Audio conversion
-- **AWS S3**: File storage
-
-### **✅ Complete System**
-- Multiple audio formats (MP3, WAV, M4A, WEBM, OGG)
-- Asynchronous processing
-- Real-time updates
-- PostgreSQL database
-- RESTful API
-
-### **✅ Clean Architecture**
-- Repository Pattern
-- Service Layer
-- Strict TypeScript
-- Error handling
-- AWS S3 integration
-
-### **✅ Modern Stack**
-- React 18 + hooks
-- TypeScript strict mode
-- Tailwind CSS
-- Vite build
-- Docker database
-
-## 🎯 **Demo**
-
-This project demonstrates:
-1. **Real AI Integration** (Whisper + Ollama)
-2. **Full-Stack Architecture**
-3. **Clean Code** implementation
-4. **Production-Ready System**
-5. **Healthcare Application**
-
-**Setup time:** ~15 minutes  
-**Demo time:** ~5 minutes
-
 ---
 
-🚀 **Production-ready healthcare system with real AI processing!** 
+🚀 **Production-ready healthcare system with simplified setup!** 

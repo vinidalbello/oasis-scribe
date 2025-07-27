@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "AI Healthcare Scribe - Hybrid Development Setup",
   "scripts": {
+    "setup": "npm run install:all && npm run setup:whisper && npm run docker:start",
+    "setup:whisper": "cd backend && npx whisper-node --download",
+    "start": "npm run docker:start && npm run dev",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && npm run dev",
