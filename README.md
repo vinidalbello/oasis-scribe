@@ -46,7 +46,7 @@ Make sure you have installed:
 ### **1. Clone & Install**
 ```bash
 git clone <repository-url>
-cd GetLimeAI
+cd oasis-scribe
 npm run install:all
 ```
 
